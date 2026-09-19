@@ -1,4 +1,5 @@
-import { resend } from "@/lib/resend";
+import { render } from "@react-email/render";
+import { getMailFrom, getTransporter } from "@/lib/mailer";
 import { ApiResponse } from "@/types/ApiResponse";
 import VerificationEmail from "../../emails/verificationEmail";
 
@@ -7,24 +8,28 @@ export async function sendVerificationEmail(
     username: string,
     verifyCode: string
 ): Promise<ApiResponse> {
-    console.log('Inside sendVerificationEmail Route')
     try {
-        console.log("email is: ", email)
-        const response = await resend.emails.send({
-            from: 'onboarding@resend.dev',
+        const emailComponent = VerificationEmail({ username, otp: verifyCode });
+        const html = await render(emailComponent);
+        const text = await render(emailComponent, { plainText: true });
+
+        await getTransporter().sendMail({
+            from: getMailFrom(),
             to: email,
-            subject: 'GhostFeedback | Verify your email address',
-            react: VerificationEmail({ username, otp: verifyCode })
+            subject: "GhostFeedback | Verify your email address",
+            html,
+            text,
         });
+
         return {
             success: true,
             message: "Verification email sent successfully.."
         };
     } catch (error) {
-        console.log("Failed to send verification email", error)
+        console.error("Failed to send verification email", error);
         return {
             success: false,
             message: "Failed to send verification email"
-        }
+        };
     }
 }
